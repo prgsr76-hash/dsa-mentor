@@ -13,7 +13,7 @@ app.use(express.json());
 
 // ---------- ENVIRONMENT VARIABLES ----------
 const MONGO_URI = 'mongodb://prgsr76_db_user:R2jG9hdcjID0wSpi@ac-pdq95xu-shard-00-00.yxgj8ef.mongodb.net:27017,ac-pdq95xu-shard-00-01.yxgj8ef.mongodb.net:27017,ac-pdq95xu-shard-00-02.yxgj8ef.mongodb.net:27017/?ssl=true&replicaSet=atlas-x3pnc1-shard-0&authSource=admin&appName=Cluster0';
-const JWT_SECRET = 'your_super_secret_jwt_key_change_this_later';
+const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_change_this_later';
 
 // ---------- DATABASE CONNECTION ----------
 console.log("⏳ Connecting to MongoDB...");
