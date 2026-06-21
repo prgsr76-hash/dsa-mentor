@@ -10,10 +10,16 @@ const otpGenerator = require('otp-generator');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// ========== CORS CONFIGURATION ==========
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.options('*', cors());
 app.use(express.json());
 
-// MongoDB Connection
+// ========== MONGODB CONNECTION ==========
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dsa-mentor';
 
 mongoose.connect(MONGO_URI)
@@ -23,12 +29,13 @@ mongoose.connect(MONGO_URI)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
 
 // ========== EMAIL CONFIG ==========
-// Use Gmail service with an app password. The account must have 2FA enabled and the app password must be generated in Google Account settings.
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER || 'your_email@gmail.com',
+    pass: process.env.EMAIL_PASS || 'your_app_password_here'
   }
 });
 
@@ -98,14 +105,14 @@ async function sendOTP(email, otp, type) {
   });
 }
 
-// ========== AUTH ROUTES ==========
-
-// 1. Test Route
+// ========== TEST ROUTE ==========
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is running' });
 });
 
-// 2. Send OTP for Registration
+// ========== AUTH ROUTES ==========
+
+// 1. Send OTP for Registration
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -127,7 +134,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 });
 
-// 3. Register with OTP
+// 2. Register with OTP
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, otp } = req.body;
@@ -153,42 +160,24 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// 4. Login (only if verified)
+// 3. Login (only if verified)
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt for:', email);
-    
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    // Safe check for isVerified (handle old users)
-    if (user.isVerified === false) {
-      return res.status(403).json({ error: 'Please verify your email first' });
-    }
-    
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (user.isVerified === false) return res.status(403).json({ error: 'Please verify your email first' });
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
     const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        name: user.name, 
-        email: user.email 
-      } 
-    });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: error.message });
   }
 });
-// 5. Forgot Password - Send OTP
+
+// 4. Forgot Password - Send OTP
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -210,7 +199,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-// 6. Reset Password with OTP
+// 5. Reset Password with OTP
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -229,7 +218,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 });
 
-// 7. Get current user
+// 6. Get current user
 app.get('/api/auth/me', auth, async (req, res) => {
   const user = await User.findById(req.userId).select('-password');
   res.json({ user });
