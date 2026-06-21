@@ -19,19 +19,28 @@ app.options('*', cors());
 app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dsa-mentor';
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err.message));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'your_email@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your_app_password_here'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+transporter.verify((error) => {
+  if (error) {
+    console.log('Email Config Error:', error);
+  } else {
+    console.log('Email Server Ready');
   }
 });
 
@@ -121,20 +130,67 @@ app.post('/api/auth/send-otp', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, otp } = req.body;
+
     if (!name || !email || !password || !otp) {
-      return res.status(400).json({ error: 'All fields including OTP are required' });
+      return res.status(400).json({
+        error: 'All fields including OTP are required'
+      });
     }
-    const otpRecord = await OTP.findOne({ email, otp, type: 'verify' });
-    if (!otpRecord) return res.status(400).json({ error: 'Invalid or expired OTP' });
-    const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ name, email, password: hashed, isVerified: true });
-    await user.save();
-    await OTP.deleteMany({ email, type: 'verify' });
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: user._id, name, email } });
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: 'Email already registered'
+      });
+    }
+
+    const otpRecord = await OTP.findOne({
+      email,
+      otp,
+      type: 'verify'
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        error: 'Invalid or expired OTP'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      isVerified: true
+    });
+
+    await OTP.deleteMany({
+      email,
+      type: 'verify'
+    });
+
+    const token = jwt.sign(
+      { id: user._id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+
   } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Register Error:', error);
+    res.status(500).json({
+      error: error.message
+    });
   }
 });
 
@@ -217,7 +273,7 @@ app.post('/api/problems', auth, async (req, res) => {
       difficulty,
       date,
       nextRevisionDate,
-      revisionLevel: 1
+      revisionLevel: 0
     });
     const saved = await newProblem.save();
     res.status(201).json(saved);
