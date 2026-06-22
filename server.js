@@ -67,13 +67,19 @@ const auth = async (req, res, next) => {
   }
 };
 
-const { Resend } = require('resend');
+// Brevo SMTP Transporter
+const transporter = nodemailer.createTransport({
+  host: 'smtp-relay.brevo.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_SMTP_USER,
+    pass: process.env.BREVO_SMTP_PASS
+  }
+});
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-console.log("RESEND_API_KEY exists:", !!process.env.RESEND_API_KEY);
 
 async function sendOTP(email, otp, type) {
-  console.log("Sending OTP to:", email);
   const subject = type === 'verify' ? 'Verify Your DSA Mentor Account' : 'Reset Your DSA Mentor Password';
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #0a0515; color: white; border-radius: 16px; border: 1px solid rgba(139,92,246,0.2);">
@@ -85,19 +91,17 @@ async function sendOTP(email, otp, type) {
   `;
 
   try {
-    const data = await resend.emails.send({
-      from: 'onboarding@resend.dev',
+    const info = await transporter.sendMail({
+      from: `"DSA Mentor" <${process.env.BREVO_SMTP_USER}>`,
       to: email,
       subject: subject,
       html: html
     });
-    console.log('Email sent:', data);
+    console.log('✅ Email sent:', info.response);
   } catch (error) {
-  console.error("RESEND ERROR:");
-  console.error(error);
-  console.error(JSON.stringify(error, null, 2));
-  throw error;
-}
+    console.error('❌ Email error:', error);
+    throw new Error('Failed to send email');
+  }
 }
 
 app.get('/api/test', (req, res) => {
