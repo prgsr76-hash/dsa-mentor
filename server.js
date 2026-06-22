@@ -93,9 +93,11 @@ async function sendOTP(email, otp, type) {
     });
     console.log('Email sent:', data);
   } catch (error) {
-    console.error('Email send error:', error);
-    throw new Error('Failed to send email');
-  }
+  console.error("RESEND ERROR:");
+  console.error(error);
+  console.error(JSON.stringify(error, null, 2));
+  throw error;
+}
 }
 
 app.get('/api/test', (req, res) => {
