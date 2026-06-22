@@ -268,6 +268,7 @@ app.put('/api/problems/:id/review', auth, async (req, res) => {
 });
 
 // ===== FOR VERCEL =====
+// For Vercel
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
