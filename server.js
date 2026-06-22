@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -18,6 +19,9 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('DSA Mentor API is running');
+});
 // ===== MONGODB =====
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dsa-mentor';
 mongoose.connect(MONGO_URI)
