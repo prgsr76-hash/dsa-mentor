@@ -1,11 +1,9 @@
-
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,30 +20,81 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.send('DSA Mentor API is running');
 });
+
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Backend is running' });
+});
+
 // ===== MONGODB =====
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/dsa-mentor';
 mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 5000,  // Fail faster
+  serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 10000,
   connectTimeoutMS: 5000
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err.message));
+
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_here';
 
-// ===== GMAIL SMTP TRANSPORTER =====
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: { rejectUnauthorized: false }
-});
+// ============================================================
+// BREVO API (NO SMTP - Uses HTTPS)
+// ============================================================
 
-// ===== SCHEMAS =====
+async function sendOTPEmail(email, otp, purpose) {
+  const titles = {
+    verify: 'Verify Your DSA Mentor Account',
+    reset: 'Reset Your Password — Verification Code'
+  };
+  const subject = titles[purpose] || 'Your Verification Code';
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #0a0515; color: white; border-radius: 16px; border: 1px solid rgba(139,92,246,0.2);">
+      <h1 style="text-align: center; color: #8b5cf6;">DSA Mentor</h1>
+      <p style="text-align: center; color: #b0a0d0;">${purpose === 'verify' ? 'Verify your email address' : 'Reset your password'}</p>
+      <p style="text-align: center; font-size: 14px; color: #b0a0d0;">Your one-time code is:</p>
+      <h1 style="text-align: center; color: #8b5cf6; font-size: 40px; letter-spacing: 8px;">${otp}</h1>
+      <p style="text-align: center; font-size: 12px; color: #666;">This code expires in 5 minutes.</p>
+      <p style="text-align: center; font-size: 12px; color: #666;">If you did not request this, you can ignore this email.</p>
+    </div>
+  `;
+
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      },
+      body: JSON.stringify({
+        sender: {
+          name: 'DSA Mentor',
+          email: process.env.BREVO_SENDER_EMAIL || 'your_email@gmail.com'
+        },
+        to: [{ email: email }],
+        subject: subject,
+        htmlContent: html
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Brevo API error:', errorData);
+      throw new Error(`Brevo API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Email sent via Brevo API:', data);
+    return true;
+  } catch (error) {
+    console.error('❌ Email error:', error);
+    throw new Error('Failed to send email');
+  }
+}
+
+// ============================================================
+// SCHEMAS
+// ============================================================
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -56,7 +105,6 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const otpSchema = new mongoose.Schema({
-  user_id: { type: String, required: false },
   email: { type: String, required: true },
   otp: { type: String, required: true },
   purpose: { type: String, enum: ['verify', 'reset'], required: true },
@@ -77,7 +125,10 @@ const problemSchema = new mongoose.Schema({
 });
 const Problem = mongoose.model('Problem', problemSchema);
 
-// ===== AUTH MIDDLEWARE =====
+// ============================================================
+// AUTH MIDDLEWARE
+// ============================================================
+
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -93,25 +144,21 @@ const auth = async (req, res, next) => {
 };
 
 // ============================================================
-// OTP FUNCTIONS (Like Python)
+// OTP FUNCTIONS
 // ============================================================
 
-// 1. generate_otp() - Like Python
 function generateOTP(length = 6) {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// 2. hash_otp() - Like Python
 function hashOTP(plain) {
   return bcrypt.hashSync(plain, 10);
 }
 
-// 3. verify_otp() - Like Python
 function verifyOTP(plain, hashed) {
   return bcrypt.compareSync(plain, hashed);
 }
 
-// 4. create_otp_record() - Like Python
 async function createOTPRecord(email, purpose, expiryMinutes = 5) {
   const plain = generateOTP();
   const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
@@ -128,7 +175,6 @@ async function createOTPRecord(email, purpose, expiryMinutes = 5) {
   return plain;
 }
 
-// 5. validate_latest_otp() - Like Python
 async function validateLatestOTP(email, purpose, plainOTP) {
   const emailL = email.toLowerCase().trim();
   
@@ -149,57 +195,16 @@ async function validateLatestOTP(email, purpose, plainOTP) {
   return row;
 }
 
-// 6. mark_otp_used() - Like Python
 async function markOTPUsed(row) {
   row.verified = true;
   await row.save();
 }
 
 // ============================================================
-// SEND OTP EMAIL (Gmail SMTP)
+// ROUTES
 // ============================================================
 
-async function sendOTPEmail(email, otp, purpose) {
-  const titles = {
-    verify: 'Verify Your DSA Mentor Account',
-    reset: 'Reset Your Password — Verification Code'
-  };
-  const subject = titles[purpose] || 'Your Verification Code';
-  
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #0a0515; color: white; border-radius: 16px; border: 1px solid rgba(139,92,246,0.2);">
-      <h1 style="text-align: center; color: #8b5cf6;">DSA Mentor</h1>
-      <p style="text-align: center; color: #b0a0d0;">${purpose === 'verify' ? 'Verify your email address' : 'Reset your password'}</p>
-      <p style="text-align: center; font-size: 14px; color: #b0a0d0;">Your one-time code is:</p>
-      <h1 style="text-align: center; color: #8b5cf6; font-size: 40px; letter-spacing: 8px;">${otp}</h1>
-      <p style="text-align: center; font-size: 12px; color: #666;">This code expires in ${process.env.OTP_EXPIRY_MINUTES || 5} minutes.</p>
-      <p style="text-align: center; font-size: 12px; color: #666;">If you did not request this, you can ignore this email.</p>
-    </div>
-  `;
-  
-  try {
-    const info = await transporter.sendMail({
-      from: `"DSA Mentor" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: subject,
-      html: html
-    });
-    console.log('✅ Email sent:', info.response);
-    return true;
-  } catch (error) {
-    console.error('❌ Email error:', error);
-    throw new Error('Failed to send email');
-  }
-}
-
-// ===== ROUTES =====
-
-// Test
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is running' });
-});
-
-// 1. Send OTP (Like Python's create_otp_record)
+// 1. Send OTP
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -212,13 +217,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
     
-    // Delete old OTPs
     await OTP.deleteMany({ email: email.toLowerCase().trim(), purpose: 'verify', verified: false });
     
-    // Create OTP record (like Python)
     const plainOTP = await createOTPRecord(email, 'verify');
-    
-    // Send email
     await sendOTPEmail(email, plainOTP, 'verify');
     
     res.json({ message: 'OTP sent successfully' });
@@ -229,7 +230,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 });
 
-// 2. Register (Like Python's validate_latest_otp)
+// 2. Register
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, otp } = req.body;
@@ -238,16 +239,13 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'All fields including OTP are required' });
     }
     
-    // Validate OTP (like Python)
     const otpRecord = await validateLatestOTP(email, 'verify', otp);
     if (!otpRecord) {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
     
-    // Mark OTP as used (like Python)
     await markOTPUsed(otpRecord);
     
-    // Create user
     const hashed = await bcrypt.hash(password, 10);
     const user = new User({ name, email: email.toLowerCase().trim(), password: hashed, isVerified: true });
     await user.save();
@@ -277,7 +275,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// 4. Forgot Password - Send OTP
+// 4. Forgot Password
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -331,7 +329,9 @@ app.get('/api/auth/me', auth, async (req, res) => {
   res.json({ user });
 });
 
-// ===== PROBLEM ROUTES =====
+// ============================================================
+// PROBLEM ROUTES
+// ============================================================
 
 app.get('/api/problems', auth, async (req, res) => {
   try {
