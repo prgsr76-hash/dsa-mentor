@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DSA Mentor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0515;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --bg-input: rgba(255, 255, 255, 0.06);
+            --text-primary: #ffffff;
+            --text-secondary: #b0a0d0;
+            --border-color: rgba(139, 92, 246, 0.2);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-hover: 0 16px 48px rgba(139, 92, 246, 0.15);
+            --accent: #8b5cf6;
+            --weak-bg: rgba(239, 68, 68, 0.15);
+            --weak-text: #fca5a5;
+            --strong-bg: rgba(16, 185, 129, 0.15);
+            --strong-text: #6ee7b7;
+            --due-bg: rgba(251, 191, 36, 0.15);
+            --due-text: #fcd34d;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --success-text: #6ee7b7;
+        }
+
+        .light-mode {
+            --bg-primary: #f3f0ff;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-card-hover: rgba(255, 255, 255, 0.95);
+            --bg-input: rgba(255, 255, 255, 0.8);
+            --text-primary: #1a0b2e;
+            --text-secondary: #5b3b8c;
+            --border-color: rgba(139, 92, 246, 0.15);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 16px 48px rgba(139, 92, 246, 0.12);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1.5rem;
+            transition: background 0.4s ease, color 0.3s ease;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(124, 58, 237, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .light-mode body {
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.04) 0%, transparent 50%);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+            animation: gridShift 20s linear infinite;
+        }
+
+        @keyframes gridShift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        .orbs {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.35;
+            animation: orbFloat 25s infinite alternate ease-in-out;
+        }
+
+        .orb:nth-child(1) {
+            width: 500px; height: 500px;
+            top: -200px; left: -200px;
+            background: #7c3aed;
+            animation-duration: 20s;
+        }
+
+        .orb:nth-child(2) {
+            width: 400px; height: 400px;
+            bottom: -150px; right: -150px;
+            background: #4f46e5;
+            animation-duration: 25s;
+            animation-delay: 2s;
+        }
+
+        .orb:nth-child(3) {
+            width: 300px; height: 300px;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #8b5cf6;
+            opacity: 0.15;
+            animation-duration: 30s;
+            animation-delay: 5s;
+        }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(100px, -80px) scale(1.2); }
+            66% { transform: translate(-80px, 100px) scale(0.9); }
+            100% { transform: translate(120px, 80px) scale(1.1); }
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            padding: 0 1rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: all 0.4s;
+        }
+
+        .header:hover {
+            border-color: rgba(139, 92, 246, 0.25);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+            backdrop-filter: blur(4px);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #6d28d9, #7c3aed);
+            box-shadow: 0 4px 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            box-shadow: 0 4px 30px rgba(239, 68, 68, 0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(139, 92, 246, 0.2);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-4px);
+        }
+
+        .card h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h3 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            background: var(--bg-input);
+            backdrop-filter: blur(4px);
+            color: var(--text-primary);
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+            background: var(--bg-card-hover);
+        }
+
+        select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        button:not(.btn):not(.delete-btn):not(.review-btn) {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 0.85rem 1.5rem;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.25);
+            font-family: 'Inter', sans-serif;
+        }
+
+        button:not(.btn):not(.delete-btn):not(.review-btn):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.35);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-box {
+            background: var(--bg-input);
+            backdrop-filter: blur(4px);
+            padding: 0.8rem;
+            border-radius: 14px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .stat-box:hover {
+            background: var(--bg-card-hover);
+            transform: scale(1.03);
+        }
+
+        .stat-box span {
+            font-size: 1.8rem;
+            font-weight: 800;
+            display: block;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-box label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-top: 0.2rem;
+            display: block;
+        }
+
+        .weak-list, .strong-list, .due-list {
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            backdrop-filter: blur(4px);
+        }
+
+        .weak-list { background: var(--weak-bg); color: var(--weak-text); }
+        .strong-list { background: var(--strong-bg); color: var(--strong-text); }
+        .due-list { background: var(--due-bg); color: var(--due-text); }
+
+        .due-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: normal;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .due-item:last-child { border-bottom: none; }
+
+        .review-btn {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6) !important;
+            padding: 0.25rem 1rem !important;
+            width: auto !important;
+            border-radius: 30px !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            border: none !important;
+            color: white !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            box-shadow: 0 2px 12px rgba(139, 92, 246, 0.25) !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        .review-btn:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.35) !important;
+        }
+
+        .review-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .mastered-badge {
+            background: var(--success-bg);
+            color: var(--success-text);
+            padding: 0.15rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .delete-btn {
+            background: var(--weak-bg) !important;
+            color: var(--weak-text) !important;
+            padding: 0.2rem 0.7rem !important;
+            width: auto !important;
+            border-radius: 30px !important;
+            font-size: 0.75rem !important;
+            border: 1px solid var(--border-color) !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            font-weight: 600 !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.25) !important;
+            transform: scale(1.05) !important;
+        }
+
+        .revision-badge {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.6rem;
+            border-radius: 12px;
+            background: var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        #problemList {
+            margin-top: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        #problemList::-webkit-scrollbar { width: 5px; }
+        #problemList::-webkit-scrollbar-track { background: var(--bg-input); border-radius: 10px; }
+        #problemList::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        #problemList>div {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-15px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        #problemList>div:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+            transform: translateX(4px);
+        }
+
+        .problem-info { flex: 1; min-width: 150px; }
+        .problem-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+        .empty-state {
+            color: var(--text-secondary);
+            padding: 1.5rem;
+            text-align: center;
+            font-style: italic;
+            opacity: 0.7;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+            background: var(--bg-card-hover);
+        }
+
+        canvas {
+            max-height: 180px;
+            width: 100% !important;
+        }
+
+        /* Auth Container */
+        .auth-container {
+            max-width: 450px;
+            margin: 0 auto;
+            padding-top: 3rem;
+        }
+
+        .auth-container .card {
+            padding: 2.5rem;
+        }
+
+        .auth-container .card h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0.3rem;
+            background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-container .card .sub {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 1.8rem;
+            font-size: 0.95rem;
+        }
+
+        .auth-container .switch-link {
+            text-align: center;
+            margin-top: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-container .switch-link a {
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .auth-container .switch-link a:hover {
+            text-decoration: underline;
+        }
+
+        #userNameDisplay {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast-success { background: rgba(16, 185, 129, 0.9); color: white; }
+        .toast-error { background: rgba(239, 68, 68, 0.9); color: white; }
+        .toast-warning { background: rgba(245, 158, 11, 0.9); color: white; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: stretch; text-align: center; padding: 1rem; }
+            .header h1 { font-size: 1.4rem; }
+            .header-actions { justify-content: center; }
+            .stats-grid { grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+            .stat-box span { font-size: 1.4rem; }
+            body { padding: 0.8rem; }
+            .card { padding: 1rem; }
+            .problem-actions { width: 100%; justify-content: flex-start; }
+            .orb { display: none; }
+            .auth-container .card { padding: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .header h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="orbs">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <!-- ========== AUTH CONTAINER ========== -->
+    <div id="authContainer">
+        <div class="container auth-container">
+            <div class="card">
+                <h1>📊 DSA Mentor</h1>
+                <p class="sub" id="authSub">Sign in to track your DSA progress</p>
+
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <input type="text" id="loginUsername" placeholder="Username" />
+                    <input type="password" id="loginPassword" placeholder="Password" />
+                    <button class="btn btn-primary" id="loginBtn">Sign In</button>
+                    <div class="switch-link">
+                        Don't have an account? <a id="showSignupLink">Sign Up</a>
+                    </div>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signupForm" style="display:none;">
+                    <input type="text" id="signupUsername" placeholder="Username" />
+                    <input type="password" id="signupPassword" placeholder="Password (min 4 chars)" />
+                    <button class="btn btn-primary" id="signupBtn">Create Account</button>
+                    <div class="switch-link">
+                        Already have an account? <a id="showLoginLink">Sign In</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== APP CONTAINER ========== -->
+    <div id="appContainer" class="hidden">
+        <div class="container">
+
+            <header class="header">
+                <h1>📊 DSA Mentor</h1>
+                <div class="header-actions">
+                    <span id="userNameDisplay">👋</span>
+                    <button class="btn" id="themeToggle">🌙 Dark</button>
+                    <button class="btn btn-primary" id="shareBtn">📤 Share</button>
+                    <button class="btn btn-primary" id="exportBtn">📥 Export CSV</button>
+                    <button class="btn btn-danger" id="logoutBtn">🚪 Logout</button>
+                </div>
+            </header>
+
+            <div class="grid">
+
+                <div>
+                    <div class="card">
+                        <h2>➕ Log New Problem</h2>
+                        <input type="text" id="problemName" placeholder="Problem Name (e.g., Two Sum)" />
+                        <select id="problemTopic">
+                            <option value="">Select Topic...</option>
+                            <option value="Arrays">Arrays</option>
+                            <option value="Strings">Strings</option>
+                            <option value="Linked List">Linked List</option>
+                            <option value="Stacks">Stacks</option>
+                            <option value="Queues">Queues</option>
+                            <option value="Trees">Trees</option>
+                            <option value="Graphs">Graphs</option>
+                            <option value="DP">Dynamic Programming (DP)</option>
+                            <option value="Recursion">Recursion</option>
+                            <option value="Backtracking">Backtracking</option>
+                            <option value="Sorting">Sorting</option>
+                            <option value="Searching">Searching</option>
+                            <option value="Hashing">Hashing</option>
+                            <option value="Greedy">Greedy</option>
+                            <option value="Heap">Heap</option>
+                            <option value="Trie">Trie</option>
+                            <option value="Bit Manipulation">Bit Manipulation</option>
+                            <option value="Two Pointers">Two Pointers</option>
+                            <option value="Sliding Window">Sliding Window</option>
+                            <option value="Matrix">Matrix</option>
+                        </select>
+                        <select id="problemDifficulty">
+                            <option value="Easy">🟢 Easy</option>
+                            <option value="Medium">🟡 Medium</option>
+                            <option value="Hard">🔴 Hard</option>
+                        </select>
+                        <input type="date" id="problemDate" />
+                        <button id="addBtn">➕ Add Problem</button>
+                    </div>
+
+                    <div class="card">
+                        <h2>📊 Quick Stats</h2>
+                        <div class="stats-grid">
+                            <div class="stat-box"><span id="totalCount">0</span><label>Total Solved</label></div>
+                            <div class="stat-box"><span id="streakCount">0</span><label>Day Streak</label></div>
+                            <div class="stat-box"><span id="readinessScore">0%</span><label>Readiness</label></div>
+                        </div>
+                        <h3>⚠️ Weak Topics</h3>
+                        <div id="weakTopics" class="weak-list">No weak topics yet (solve more!)</div>
+                    </div>
+
+                    <div class="card" id="dueCard">
+                        <h2>📅 Due for Revision Today</h2>
+                        <div id="dueList" class="empty-state">No revisions due today! 🎉</div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="card">
+                        <h2>📈 Topic Coverage</h2>
+                        <canvas id="topicChart" height="160"></canvas>
+                    </div>
+                    <div class="card">
+                        <h2>📝 Solved Problems</h2>
+                        <input type="text" id="searchInput" placeholder="🔍 Search by name or topic..." />
+                        <div id="problemList" class="empty-state">No problems logged yet. Add one!</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 1. TOAST
+        // ============================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 3500);
+        }
+
+        // ============================================================
+        // 2. THEME
+        // ============================================================
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+            themeToggle.textContent = '☀️ Light';
+        }
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            this.textContent = isLight ? '☀️ Light' : '🌙 Dark';
+        });
+
+        // ============================================================
+        // 3. API CONFIG
+        // ============================================================
+        const API_BASE = 'https://dsa-mentor-backend-production.up.railway.app/api';
+       
+
+        // ============================================================
+        // 4. AUTH STATE
+        // ============================================================
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+
+        // ============================================================
+        // 5. UI TOGGLES
+        // ============================================================
+        function showApp(user) {
+            currentUser = user;
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').classList.remove('hidden');
+            document.getElementById('userNameDisplay').textContent = '👋 ' + user.username;
+            fetchProblems();
+        }
+
+        function showAuth() {
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('appContainer').classList.add('hidden');
+        }
+
+        // ============================================================
+        // 6. AUTH FUNCTIONS
+        // ============================================================
+        async function registerUser(username, password) {
+            const res = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            return res.json();
+        }
+
+        async function loginUser(username, password) {
+            const res = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            return res.json();
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            authToken = null;
+            currentUser = null;
+            showAuth();
+            showToast('👋 Logged out successfully', 'info');
+        }
+
+        // ============================================================
+        // 7. AUTH EVENT LISTENERS
+        // ============================================================
+        document.getElementById('showSignupLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+            document.getElementById('authSub').textContent = 'Create your free account';
+        });
+
+        document.getElementById('showLoginLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('authSub').textContent = 'Sign in to track your DSA progress';
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showToast('Please enter username and password', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+
+            try {
+                const data = await loginUser(username, password);
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showToast('✅ Welcome back, ' + data.user.username + '!', 'success');
+                    showApp(data.user);
+                } else {
+                    showToast(data.error || 'Login failed', 'error');
+                }
+            } catch (error) {
+                showToast('Server error. Please try again.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Sign In';
+        });
+
+        document.getElementById('signupBtn').addEventListener('click', async () => {
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+
+            if (!username || !password) {
+                showToast('Please enter username and password', 'error');
+                return;
+            }
+
+            if (password.length < 4) {
+                showToast('Password must be at least 4 characters', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            try {
+                const data = await registerUser(username, password);
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showToast('✅ Account created successfully!', 'success');
+                    showApp(data.user);
+                } else {
+                    showToast(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showToast('Server error. Please try again.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Create Account';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+
+        // ============================================================
+        // 8. INIT
+        // ============================================================
+        if (authToken) {
+            try {
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (user) {
+                    showApp(user);
+                } else {
+                    showAuth();
+                }
+            } catch (e) {
+                showAuth();
+            }
+        } else {
+            showAuth();
+        }
+
+        // ============================================================
+        // 9. PROBLEM CRUD
+        // ============================================================
+        let problems = [];
+        let chartInstance = null;
+
+        const problemName = document.getElementById('problemName');
+        const problemTopic = document.getElementById('problemTopic');
+        const problemDifficulty = document.getElementById('problemDifficulty');
+        const problemDate = document.getElementById('problemDate');
+        const addBtn = document.getElementById('addBtn');
+
+        const totalCountEl = document.getElementById('totalCount');
+        const streakCountEl = document.getElementById('streakCount');
+        const readinessScoreEl = document.getElementById('readinessScore');
+        const weakTopicsEl = document.getElementById('weakTopics');
+        const problemListEl = document.getElementById('problemList');
+        const dueListEl = document.getElementById('dueList');
+        const ctx = document.getElementById('topicChart').getContext('2d');
+
+        async function fetchProblems() {
+            try {
+                const res = await fetch(`${API_BASE}/problems`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch');
+                problems = await res.json();
+                renderAll();
+            } catch (error) {
+                console.error('Error fetching problems:', error);
+                problemListEl.innerHTML = '<div class="empty-state">⚠️ Could not connect to backend.</div>';
+                showToast('⚠️ Could not connect to backend', 'error');
+            }
+        }
+
+        async function addProblemToBackend(newProblem) {
+            try {
+                const res = await fetch(`${API_BASE}/problems`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(newProblem)
+                });
+                if (!res.ok) throw new Error('Failed to add');
+                const saved = await res.json();
+                problems.push(saved);
+                renderAll();
+                showToast(`✅ "${saved.name}" added!`, 'success');
+                return saved;
+            } catch (error) {
+                showToast('❌ Failed to add problem', 'error');
+            }
+        }
+
+        async function deleteProblemFromBackend(id) {
+            try {
+                const res = await fetch(`${API_BASE}/problems/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) throw new Error('Failed to delete');
+                problems = problems.filter(p => p._id !== id);
+                renderAll();
+                showToast('🗑️ Deleted', 'warning');
+            } catch (error) {
+                showToast('❌ Failed to delete problem', 'error');
+            }
+        }
+
+        async function reviewProblem(id) {
+            try {
+                const res = await fetch(`${API_BASE}/problems/${id}/review`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (!res.ok) throw new Error('Failed to review');
+                const updated = await res.json();
+                const idx = problems.findIndex(p => p._id === id);
+                if (idx !== -1) problems[idx] = updated;
+                renderAll();
+                showToast(`✅ "${updated.name}" reviewed!`, 'success');
+            } catch (error) {
+                showToast('❌ Failed to review', 'error');
+            }
+        }
+
+        // ============================================================
+        // 10. HELPERS
+        // ============================================================
+        function getToday() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function addProblem() {
+            const name = problemName.value.trim();
+            const topic = problemTopic.value;
+            const difficulty = problemDifficulty.value;
+            const date = problemDate.value;
+
+            if (!name || !topic || !date) {
+                showToast('⚠️ All fields required!', 'warning');
+                return;
+            }
+
+            addProblemToBackend({ name, topic, difficulty, date });
+            problemName.value = '';
+            problemTopic.value = '';
+            problemName.focus();
+            problemDate.valueAsDate = new Date();
+        }
+
+        function deleteProblem(id) {
+            if (confirm('Delete this problem?')) deleteProblemFromBackend(id);
+        }
+
+        function calculateStreak() {
+            if (!problems.length) return 0;
+            const dates = [...new Set(problems.map(p => p.date))].sort().reverse();
+            let streak = 0;
+            let checkDate = new Date();
+
+            for (let d of dates) {
+                const dt = new Date(d);
+                if (dt.getFullYear() === checkDate.getFullYear() &&
+                    dt.getMonth() === checkDate.getMonth() &&
+                    dt.getDate() === checkDate.getDate()) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function getAnalytics() {
+            const total = problems.length;
+            const topicMap = {};
+            problems.forEach(p => {
+                topicMap[p.topic] = (topicMap[p.topic] || 0) + 1;
+            });
+            const topics = Object.keys(topicMap);
+            const counts = Object.values(topicMap);
+            const weak = topics.filter(t => topicMap[t] < 3);
+
+            const topicScore = Math.min(5, topics.length) * 10;
+            const totalScore = Math.min(30, total) * (50 / 30);
+            const readiness = Math.min(100, Math.round(topicScore + totalScore));
+
+            return { total, topics, counts, weak, readiness };
+        }
+
+        function renderAll() {
+            const { total, topics, counts, weak, readiness } = getAnalytics();
+            const streak = calculateStreak();
+            const today = getToday();
+
+            totalCountEl.textContent = total;
+            streakCountEl.textContent = streak;
+            readinessScoreEl.textContent = readiness + '%';
+
+            if (weak.length === 0) {
+                weakTopicsEl.textContent = '✅ No weak topics! Keep it up!';
+                weakTopicsEl.className = 'strong-list';
+            } else {
+                weakTopicsEl.textContent = '⚠️ ' + weak.join(', ');
+                weakTopicsEl.className = 'weak-list';
+            }
+
+            const dueProblems = problems.filter(p => p.nextRevisionDate && p.nextRevisionDate <= today);
+            if (dueProblems.length === 0) {
+                dueListEl.innerHTML = '<div class="empty-state">No revisions due today! 🎉</div>';
+            } else {
+                let html = '';
+                dueProblems.forEach(p => {
+                    const mastered = p.revisionLevel >= 4;
+                    html += `
+                        <div class="due-item">
+                            <span><strong>${p.name}</strong> · ${p.topic}</span>
+                            <span>
+                                ${mastered ? '<span class="mastered-badge">✅ Mastered</span>' : ''}
+                                <button class="review-btn" onclick="reviewProblem('${p._id}')" ${mastered ? 'disabled' : ''}>
+                                    ${mastered ? 'Done' : '✅ Review'}
+                                </button>
+                            </span>
+                        </div>
+                    `;
+                });
+                dueListEl.innerHTML = html;
+            }
+
+            if (problems.length === 0) {
+                problemListEl.innerHTML = '<div class="empty-state">No problems logged yet. Add one!</div>';
+            } else {
+                const sorted = [...problems].sort((a, b) => b.date.localeCompare(a.date));
+                let html = '';
+                sorted.forEach(p => {
+                    const id = p._id || p.id;
+                    let status = '';
+                    if (p.revisionLevel === 0) status = '📝 New';
+                    else if (p.revisionLevel === 1) status = '📅 Due in 1d';
+                    else if (p.revisionLevel === 2) status = '📅 Due in 7d';
+                    else if (p.revisionLevel === 3) status = '📅 Due in 30d';
+                    else if (p.revisionLevel >= 4) status = '✅ Mastered';
+
+                    const overdue = p.nextRevisionDate && p.nextRevisionDate < today && p.revisionLevel < 4;
+
+                    html += `
+                        <div style="${overdue ? 'border-left: 3px solid #ef4444; padding-left:8px;' : ''}">
+                            <span class="problem-info">
+                                <strong>${p.name}</strong> · ${p.topic} ·
+                                <span style="color:var(--text-secondary);">${p.difficulty}</span> · ${p.date}
+                                ${status ? `<span class="revision-badge">${status}</span>` : ''}
+                                ${overdue ? ' 🔴 Overdue!' : ''}
+                            </span>
+                            <span class="problem-actions">
+                                ${p.revisionLevel < 4 && p.nextRevisionDate ?
+                                    `<button class="review-btn" onclick="reviewProblem('${id}')">✅ Review</button>` : ''}
+                                <button class="delete-btn" onclick="deleteProblem('${id}')">✕</button>
+                            </span>
+                        </div>
+                    `;
+                });
+                problemListEl.innerHTML = html;
+            }
+
+            if (chartInstance) chartInstance.destroy();
+            if (topics.length > 0) {
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: topics,
+                        datasets: [{
+                            label: 'Problems Solved',
+                            data: counts,
+                            backgroundColor: ['#7c3aed', '#8b5cf6', '#a78bfa', '#c4b5fd', '#6d28d9', '#5b21b6', '#4c1d95', '#9d4edd'],
+                            borderRadius: 6,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1, color: 'var(--text-secondary)' } },
+                            x: { ticks: { color: 'var(--text-secondary)' } }
+                        }
+                    }
+                });
+            } else {
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: ['No Data'], datasets: [{ label: 'Problems', data: [0], backgroundColor: 'var(--border-color)', borderRadius: 6 }] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1, color: 'var(--text-secondary)' } },
+                            x: { ticks: { color: 'var(--text-secondary)' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ============================================================
+        // 11. SEARCH
+        // ============================================================
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const q = this.value.toLowerCase().trim();
+            document.querySelectorAll('#problemList > div').forEach(el => {
+                const text = el.textContent.toLowerCase();
+                el.style.display = text.includes(q) ? 'flex' : 'none';
+            });
+        });
+
+        // ============================================================
+        // 12. SHARE
+        // ============================================================
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const total = totalCountEl.textContent;
+            const streak = streakCountEl.textContent;
+            const weak = weakTopicsEl.textContent;
+            const text =
+                `📊 My DSA Progress:\n- Total Solved: ${total}\n- Streak: ${streak} days\n- Weak Topics: ${weak}\n\nTrack yours at DSA Mentor!`;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('✅ Copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('⚠️ Copy manually', 'warning');
+            });
+        });
+
+        // ============================================================
+        // 13. EXPORT CSV
+        // ============================================================
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            if (problems.length === 0) {
+                showToast('No data to export!', 'warning');
+                return;
+            }
+            let csv = 'Name,Topic,Difficulty,Date,Revision Level,Next Revision Date\n';
+            problems.forEach(p => {
+                csv +=
+                    `"${p.name}","${p.topic}","${p.difficulty}","${p.date}",${p.revisionLevel || 0},"${p.nextRevisionDate || 'Done'}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dsa_progress_${getToday()}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('📥 CSV exported!', 'success');
+        });
+
+        // ============================================================
+        // 14. EVENTS
+        // ============================================================
+        addBtn.addEventListener('click', addProblem);
+        problemName.addEventListener('keydown', e => { if (e.key === 'Enter') addProblem(); });
+        problemDate.valueAsDate = new Date();
+    </script>
+
+</body>
+</html>
